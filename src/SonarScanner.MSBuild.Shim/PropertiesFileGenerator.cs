@@ -72,16 +72,13 @@ namespace SonarScanner.MSBuild.Shim
         /// Note: The path to the generated file will be null if the file could not be generated.</returns>
         public ProjectInfoAnalysisResult GenerateFile()
         {
-            var projectPropertiesPath = Path.Combine(analysisConfig.SonarOutputDir, ProjectPropertiesFileName);
             var result = new ProjectInfoAnalysisResult();
             var writer = new PropertiesWriter(analysisConfig, logger);
-            logger.LogDebug(Resources.MSG_GeneratingProjectProperties, projectPropertiesPath, SonarProduct.GetSonarProductToLog(analysisConfig.SonarQubeHostUrl));
             if (TryWriteProperties(writer, out var projects))
             {
-                var contents = writer.Flush();
-                File.WriteAllText(projectPropertiesPath, contents, Encoding.ASCII);
-                logger.LogDebug(Resources.DEBUG_DumpSonarProjectProperties, contents);
-                result.FullPropertiesFilePath = projectPropertiesPath;
+                writer.Flush();
+                logger.LogDebug(Resources.DEBUG_DumpSonarProjectProperties, result.ScannerEngineProperties);
+                result.ScannerEngineProperties = writer.Output;
             }
             else
             {

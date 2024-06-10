@@ -81,6 +81,34 @@ namespace SonarScanner.MSBuild.PostProcessor
                 return false;
             }
 
+            // FIRST STEP
+            // A first step could be to remove the sonar-scanner.bat only, but keep the call to the sonar-scanner-cli.jar,
+            // embedded into the scanner.
+            // The bat file only does the following things:
+            // - search for a suitable Java installation
+            // - call the CLI with the sonar-project.properties file built during the end step
+            // We would first retrieve the suitable JRE from the server, using the provided REST API.
+            // And then we would call the sonar-scanner-cli.jar via Process.Execute in .NET.
+            // So we would remove completely the bat file, but keep the sonar-project.properties file.
+            //
+            // TODO:
+            // SECOND STEP
+            // This is the step where the get rid of the sonar-scanner-cli.jar and replace it with the scanner-engine.
+            // This creates a file named sonar-project.properties, that is later picked up by the
+            // Scanner CLI. Instead of doing that, we need to get back the properties themselves (some of which
+            // received via the XML coming from the begin step - SonarQubeAnalysisConfig.xml) and then
+            // pass them to the scanner-engine via stdin.
+            //
+            // Replace the PropertiesWriter, which currently writes a Java properties file
+            // (using this format: https://en.wikipedia.org/wiki/.properties)
+            // into an in-memory JSON object conforming to the Scanner Engine Contract
+            // (https://xtranet-sonarsource.atlassian.net/wiki/spaces/LANG/pages/3155001372/Scanner+Bootstrapping#Scanner-Engine-contract)
+            //
+            // The new InMemoryJsonPropertiesWriter would return the JSON object.
+            // The InMemoryJsonPropertiesWriter would be called, as it currently happens for the PropertiesWriter,
+            // in PropertiesFileGenerator.GenerateFile().
+            //
+            //
             var propertyResult = GenerateAndValidatePropertiesFile(config);
             if (propertyResult.FullPropertiesFilePath != null)
             {
@@ -90,7 +118,8 @@ namespace SonarScanner.MSBuild.PostProcessor
                 var result = false;
                 if (propertyResult.RanToCompletion)
                 {
-                    result = InvokeSonarScanner(provider, config, propertyResult.FullPropertiesFilePath);
+                    result = InvokeSonarScannerEngine(provider, config, propertyResult.FullPropertiesFilePath,
+                        propertyResult.);
                 }
 #if NETFRAMEWORK
                 if (settings.BuildEnvironment == BuildEnvironment.LegacyTeamBuild)
@@ -113,6 +142,7 @@ namespace SonarScanner.MSBuild.PostProcessor
 
             var result = this.propertiesFileGenerator.GenerateFile();
 
+            //
             if (this.sonarProjectPropertiesValidator.AreExistingSonarPropertiesFilesPresent(config.SonarScannerWorkingDirectory, result.Projects, out var invalidFolders))
             {
                 logger.LogError(Resources.ERR_ConflictingSonarProjectProperties, string.Join(", ", invalidFolders));
@@ -235,7 +265,7 @@ namespace SonarScanner.MSBuild.PostProcessor
 
 #endif
 
-        private bool InvokeSonarScanner(IAnalysisPropertyProvider cmdLineArgs, AnalysisConfig config, String propertiesFilePath)
+        private bool InvokeSonarScannerEngine(IAnalysisPropertyProvider cmdLineArgs, AnalysisConfig config, String propertiesFilePath)
         {
             var args = GetSonarScannerArgs(cmdLineArgs);
 

@@ -20,6 +20,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using SonarScanner.MSBuild.Common;
 
 namespace SonarScanner.MSBuild.Shim
@@ -30,7 +31,10 @@ namespace SonarScanner.MSBuild.Shim
 
         public bool RanToCompletion { get; set; }
 
-        public string FullPropertiesFilePath { get; set; }
+        // public string FullPropertiesFilePath { get; set; }
+
+        // The following replaces FullPropertiesFilePath
+        public JObject ScannerEngineProperties { get; set; }
 
         public ICollection<ProjectInfo> GetProjectsByStatus(ProjectInfoValidity status)
         {
