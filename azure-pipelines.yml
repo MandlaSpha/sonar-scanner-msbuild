@@ -103,6 +103,8 @@ stages:
           - task: SSMClientToolsSetup@1
             displayName: Client Tools Setup
             condition: eq(variables.IS_RELEASE_BRANCH, 'true')
+            env:
+              SM_LOG_OUTPUT: console
 
           - task: SSMSigningToolsSetup@1
             displayName: Signing Tools Setup
